@@ -405,12 +405,12 @@ contract uomiFarm is Ownable {
     }
 
     function openMarket() public onlyOwner {
-        require(marketOpen, "market already open");
+        require(!marketOpen, "market already open");
         marketOpen = true;
     }
 
     function closeMarket() public onlyOwner {
-        require(!marketOpen, "market already closed");
+        require(marketOpen, "market already closed");
         marketOpen = false;
     }
 

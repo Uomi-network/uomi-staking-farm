@@ -89,6 +89,7 @@ describe("OVRLandContainer", async () => {
     });
     it("Add a new pool into the farm with 30 days", async () => {
       await uomiFarm.add(100, stakingToken.address, true, 2628000, 999999999);
+      await uomiFarm.openMarket();
       console.debug(cyan, `Pool 0 info: ${await uomiFarm.poolInfo(0)}`);
     });
 
