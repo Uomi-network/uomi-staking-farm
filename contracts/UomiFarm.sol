@@ -45,6 +45,7 @@ contract uomiFarm is Ownable {
         uint256 minTimeStaked; // min time staked in seconds to get rewards
     }
 
+    bool public marketOpen = false;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
     // The block number when uomi mining starts ->
@@ -74,6 +75,7 @@ contract uomiFarm is Ownable {
     error MaxPoolCapReached();
     error DepositZero();
     error poolNotExist();
+    error marketNotOpen();
 
     constructor(
         IERC20 _uomi,
@@ -321,6 +323,7 @@ contract uomiFarm is Ownable {
      * @param _pid The pool ID.
      */
     function withdrawAll(uint256 _pid) public {
+        if (!marketOpen) revert marketNotOpen();
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 amount = user.amount;
         withdraw(_pid, amount);
@@ -337,6 +340,7 @@ contract uomiFarm is Ownable {
      * @notice Emits a `Withdrawn` event with the user's address, pool ID, and amount of tokens withdrawn.
      */
     function withdraw(uint256 _pid, uint256 _amount) public {
+        if (!marketOpen) revert marketNotOpen();
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         if (user.amount < _amount) revert NotEnoughToWithdraw();
@@ -377,6 +381,7 @@ contract uomiFarm is Ownable {
      * @param _pid The pool ID.
      */
     function claimReward(uint256 _pid) public {
+        if (!marketOpen) revert marketNotOpen();
         UserInfo storage user = userInfo[_pid][msg.sender];
         PoolInfo storage pool = poolInfo[_pid];
 
@@ -397,6 +402,16 @@ contract uomiFarm is Ownable {
         }
 
         emit ClaimedReward(msg.sender, _pid);
+    }
+
+    function openMarket() public onlyOwner {
+        require(marketOpen, "market already open");
+        marketOpen = true;
+    }
+
+    function closeMarket() public onlyOwner {
+        require(!marketOpen, "market already closed");
+        marketOpen = false;
     }
 
     /**
