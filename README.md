@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Uomi Network is a staking platform for the Uomi token, designed to incentivize token holders to actively participate in the network and earn rewards. This project is built using HardHat, and the smart contract is written in Solidity.
+Uomi Network farm Smart Contract. This project is built using HardHat, and the smart contract is written in Solidity.
 
 ## Features
 
