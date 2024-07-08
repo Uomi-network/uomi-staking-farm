@@ -19,7 +19,7 @@ Uomi Network farm Smart Contract. This project is built using HardHat, and the s
 1. **Clone the repository**:
 
    ```sh
-   git clone https://github.com/genjigakura/uomi-staking-farm.git
+   git clone https://github.com/Uomi-network/uomi-staking-farm.git
    cd uomi-staking-farm
    ```
 
