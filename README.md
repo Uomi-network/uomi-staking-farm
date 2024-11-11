@@ -68,13 +68,6 @@ Users can withdraw their tokens at any time using the `withdraw` function:
 await uomiFarm.withdraw(poolId, amount);
 ```
 
-### Claim Rewards
-
-Users can claim their pending rewards using the `claimReward` function:
-
-```javascript
-await uomiFarm.claimReward(poolId);
-```
 
 ## Smart Contract
 
@@ -89,6 +82,7 @@ The smart contract `uomiFarm` manages the staking and reward distribution logic.
   - `amount`: Number of tokens the user has staked.
   - `rewardDebt`: Tracks the user's pending reward debt.
   - `lastDepositTime`: Timestamp of the user's last deposit.
+  - `pendingRewards`: Pending rewards for user
 
 - **PoolInfo**: This struct holds details for each staking pool:
   - `token`: The address of the staked token.
@@ -97,13 +91,12 @@ The smart contract `uomiFarm` manages the staking and reward distribution logic.
   - `accUomiPerShare`: Accumulated Uomi per share, multiplied by 1e18.
   - `totalStaked`: Total tokens staked in the pool.
   - `minTimeStaked`: Minimum time in seconds required to stake to earn rewards.
+  - `mainnetReleased`: bool to set if mainnet has ben released 
 
 ### Key Functions
 
 - **`deposit(uint256 _pid, uint256 _amount)`**: Allows users to deposit tokens into a specified pool. This function updates the pool's reward distribution, transfers the user's tokens to the contract, and updates the user's staked amount and reward debt.
 - **`withdraw(uint256 _pid, uint256 _amount)`**: Enables users to withdraw their staked tokens from a specific pool. This function ensures the user has enough tokens staked, calculates pending rewards, and updates the pool's and user's information accordingly.
-
-- **`claimReward(uint256 _pid)`**: Allows users to claim their pending rewards from a specified pool. It transfers the pending rewards to the user's address and updates their reward debt.
 
 - **`add(uint256 _allocPoint, IERC20 _token, bool _withUpdate, uint256 _minTimeStaked, uint256 _lastRewardBlockNumber)`**: Allows the contract owner to add a new staking pool. This function can optionally update all pools before adding the new one.
 
@@ -117,7 +110,6 @@ The smart contract `uomiFarm` manages the staking and reward distribution logic.
 
 - `Deposited(address indexed user, uint256 indexed pid, uint256 amount)`: Emitted when a user deposits tokens into a pool.
 - `Withdrawn(address indexed user, uint256 indexed pid, uint256 amount)`: Emitted when a user withdraws tokens from a pool.
-- `ClaimedReward(address indexed user, uint256 indexed pid)`: Emitted when a user claims rewards from a pool.
 
 ### Errors
 
@@ -133,6 +125,10 @@ This project includes additional smart contracts used for testing purposes:
 
 - **`stakingToken.sol`**: A mock token contract used for staking in tests.
 - **`rewardToken.sol`**: A mock token contract used for rewarding in tests.
+
+## Rewards 
+
+Rewards will stop after reaching maxRewardsBlock, after that a snapshot will be done to airdrop tokens on the mainnet, admin will set 'mainnet released' and after that users can withdraw their tokens without losing the earned rewards
 
 ### Running Tests
 

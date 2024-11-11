@@ -53,7 +53,7 @@ module.exports = {
       // },
     },
     testnet: {
-      url: `https://rpc2.sepolia.org`,
+      url: `https://1rpc.io/sepolia`,
       accounts: [process.env.PRIVATE_KEY],
     },
     "matic-mainnet": {

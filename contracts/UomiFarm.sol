@@ -23,6 +23,7 @@ contract uomiFarm is Ownable {
         uint256 amount; // How many  tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         uint256 lastDepositTime; // Last deposit time
+        uint256 pendingReward; // Pending reward
         //
         // We do some fancy math here. Basically, any point in time, the amount of Uomi
         // entitled to a user but is pending to be distributed is:
@@ -38,14 +39,13 @@ contract uomiFarm is Ownable {
 
     struct PoolInfo {
         IERC20 token; // Address of staked token
-        uint256 allocPoint; // How many allocation points assigned to this pool. Uomi to distribute per block.
+        uint256 allocPoint; // How many allocation points assigned to this pool. 
         uint256 lastRewardBlock; // Last block number that Uomi distribution occurs.
         uint256 accUomiPerShare; // Accumulated Uomi per share, times 1e18. See below.
         uint256 totalStaked; // Total staked in this pool
-        uint256 minTimeStaked; // min time staked in seconds to get rewards
+        bool mainnetReleased; // true if the mainnet has been released
     }
 
-    bool public marketOpen = false;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
     // The block number when uomi mining starts ->
@@ -58,8 +58,6 @@ contract uomiFarm is Ownable {
 
     // Accumulated uomi per share, times 1e18.
     uint256 public constant accUomiPerShareMultiple = 1e18;
-    // The uomi token!
-    IERC20 public uomi;
 
     // Info on each pool added
     PoolInfo[] public poolInfo;
@@ -68,21 +66,18 @@ contract uomiFarm is Ownable {
     //events
     event Deposited(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdrawn(address indexed user, uint256 indexed pid, uint256 amount);
-    event ClaimedReward(address indexed user, uint256 indexed pid);
     //errors
     error NotEnoughToWithdraw();
     error AllocPointZero();
     error MaxPoolCapReached();
     error DepositZero();
     error poolNotExist();
-    error marketNotOpen();
+    error stakingPeriodEnded();
 
     constructor(
-        IERC20 _uomi,
         uint256 _rewardPerBlock,
         uint256 _maxRewardBlockNumber
     ) Ownable(msg.sender) {
-        uomi = _uomi;
         rewardPerBlock = _rewardPerBlock;
         maxRewardBlockNumber = _maxRewardBlockNumber;
     }
@@ -103,7 +98,7 @@ contract uomiFarm is Ownable {
         uint256 totalReward = ((user.amount * poolRewardPerShare) /
             accUomiPerShareMultiple) - user.rewardDebt;
 
-        return totalReward;
+        return totalReward + user.pendingReward;
     }
 
     /**
@@ -123,7 +118,7 @@ contract uomiFarm is Ownable {
             totalReward =
                 totalReward +
                 ((user.amount * poolRewardPerShare) / accUomiPerShareMultiple) -
-                user.rewardDebt;
+                user.rewardDebt + user.pendingReward;
         }
 
         return totalReward;
@@ -158,29 +153,26 @@ contract uomiFarm is Ownable {
     }
 
     /**
-     * @dev Transfers all the UOMI tokens held by the contract to the specified address.
-     * Can only be called by the contract owner.
-     * @param _to The address to which the UOMI tokens will be transferred.
+     * @notice Marks mainnet released.
+     * @dev This function can only be called by the owner.
+     * @param _pid The ID of the pool to be marked as released.
      */
-    function redeemAllRewards(address _to) public onlyOwner {
-        uint256 uomiBal = uomi.balanceOf(address(this));
-        uomi.transfer(_to, uomiBal);
+    function setMainnetReleased(uint256 _pid) public onlyOwner {
+        poolInfo[_pid].mainnetReleased = true;
     }
+
 
     /**
      * @dev Adds a new pool to the UomiFarm contract.
      * @param _allocPoint The allocation point of the pool.
      * @param _token The address of the staked token.
      * @param _withUpdate Whether to update all pools before adding the new one.
-     * @param _minTimeStaked The minimum time staked in seconds to get rewards
      * @notice Only the contract owner can call this function.
      */
     function add(
         uint256 _allocPoint, // allocation point for the pool
         IERC20 _token, // staked token address
-        bool _withUpdate, //update all pools
-        uint256 _minTimeStaked, // min time staked in seconds to get rewards
-        uint256 _lastRewardBlockNumber // max reward block
+        bool _withUpdate //update all pools
     ) public onlyOwner {
         if (_allocPoint < 1) {
             revert AllocPointZero();
@@ -194,10 +186,10 @@ contract uomiFarm is Ownable {
             PoolInfo({
                 token: _token,
                 allocPoint: _allocPoint,
-                lastRewardBlock: _lastRewardBlockNumber,
+                lastRewardBlock: block.number,
                 accUomiPerShare: 0,
                 totalStaked: 0,
-                minTimeStaked: _minTimeStaked
+                mainnetReleased: false
             })
         );
     }
@@ -255,47 +247,30 @@ contract uomiFarm is Ownable {
         pool.lastRewardBlock = block.number;
     }
 
-    /**
-     * @dev Safely transfers UOMI tokens to a specified address.
-     * If the contract's UOMI balance is less than the specified amount,
-     * it transfers the entire balance. Otherwise, it transfers the specified amount.
-     * @param _to The address to transfer the UOMI tokens to.
-     * @param _amount The amount of UOMI tokens to transfer.
-     */
-    function safeUomiTransfer(address _to, uint256 _amount) internal {
-        uint256 uomiBal = uomi.balanceOf(address(this));
-        if (_amount > uomiBal) {
-            uomi.transfer(_to, uomiBal);
-        } else {
-            uomi.transfer(_to, _amount);
-        }
-    }
+
 
     /**
-     * @dev Allows a user to deposit tokens into a specific pool.
-     * @param _pid The pool ID.
-     * @param _amount The amount of tokens to deposit.
-     * Requirements:
-     * - The amount must be greater than zero.
-     * - The pool must exist.
-     * Effects:
-     * - Updates the pool information.
-     * - Transfers the deposited tokens from the user to the contract.
-     * - Updates the user's staked amount and the pool's total staked amount.
-     * - Calculates and transfers any pending rewards to the user.
-     * - Updates the user's reward debt.
-     * - Updates the user's last deposit time.
-     * Emits a `Deposited` event.
+     * @notice Deposits a specified amount of tokens for a user into a staking pool.
+     * @dev This function allows a user to deposit tokens into a specific pool identified by `_pid`.
+     *      It updates the pool's and user's information accordingly.
+     * @param _pid The ID of the pool into which the tokens will be deposited.
+     * @param _amount The amount of tokens to be deposited.
+     * @param _user The address of the user for whom the deposit is being made.
+     * @notice Reverts if the deposit amount is zero.
+     * @notice Reverts if the pool does not exist.
+     * @notice Reverts if the staking period has ended.
+     * @notice Transfers the specified amount of tokens from the user to the contract.
+     * @notice Updates the user's staked amount, total staked amount in the pool, and the user's reward debt.
+     * @notice Emits a `Deposited` event upon successful deposit.
      */
-    function deposit(uint256 _pid, uint256 _amount) public {
-        if (_amount == 0) {
-            revert DepositZero();
-        }
+    function depositForUser(uint256 _pid, uint256 _amount, address _user) public {
+        if (_amount == 0) revert DepositZero();
+
         PoolInfo storage pool = poolInfo[_pid];
-        if (pool.token == IERC20(address(0))) {
-            revert poolNotExist();
-        }
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        if (pool.token == IERC20(address(0))) revert poolNotExist();
+        if (pool.mainnetReleased) revert stakingPeriodEnded();
+
+        UserInfo storage user = userInfo[_pid][_user];
         updatePool(_pid);
 
         if (user.amount > 0) {
@@ -303,11 +278,11 @@ contract uomiFarm is Ownable {
                 accUomiPerShareMultiple) - user.rewardDebt;
 
             if (pending > 0) {
-                safeUomiTransfer(msg.sender, pending);
+                user.pendingReward = user.pendingReward + pending;
             }
         }
 
-        pool.token.safeTransferFrom(msg.sender, address(this), _amount);
+        pool.token.safeTransferFrom(_user, address(this), _amount);
         user.amount = user.amount + _amount;
         pool.totalStaked = pool.totalStaked + _amount;
 
@@ -315,7 +290,17 @@ contract uomiFarm is Ownable {
             (user.amount * pool.accUomiPerShare) /
             accUomiPerShareMultiple;
         user.lastDepositTime = block.timestamp;
-        emit Deposited(msg.sender, _pid, _amount);
+        emit Deposited(_user, _pid, _amount);
+    }
+
+    /**
+     * @notice Allows a user to deposit a specified amount of tokens into a specific pool.
+     * @dev This function calls the `depositForUser` function with the sender's address.
+     * @param _pid The ID of the pool where the tokens will be deposited.
+     * @param _amount The amount of tokens to deposit.
+     */
+    function deposit(uint256 _pid, uint256 _amount) public {
+        depositForUser(_pid, _amount, msg.sender);
     }
 
     /**
@@ -323,7 +308,6 @@ contract uomiFarm is Ownable {
      * @param _pid The pool ID.
      */
     function withdrawAll(uint256 _pid) public {
-        if (!marketOpen) revert marketNotOpen();
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 amount = user.amount;
         withdraw(_pid, amount);
@@ -334,34 +318,22 @@ contract uomiFarm is Ownable {
      * @param _pid The pool ID.
      * @param _amount The amount of tokens to withdraw.
      * @notice The user must have enough tokens staked to withdraw the specified amount.
-     * @notice If the user has not reached the minimum staking time for the pool, the withdrawal will be rejected.
-     * @notice The user will receive any pending rewards before withdrawing their tokens.
+     * @notice If mainnet is not released, user will lose all his/her earned rewards.
      * @notice The user's staked token balance and the pool's total staked tokens will be updated accordingly.
      * @notice Emits a `Withdrawn` event with the user's address, pool ID, and amount of tokens withdrawn.
      */
     function withdraw(uint256 _pid, uint256 _amount) public {
-        if (!marketOpen) revert marketNotOpen();
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         if (user.amount < _amount) revert NotEnoughToWithdraw();
 
         updatePool(_pid);
 
-        uint256 pending;
-        if (user.lastDepositTime + pool.minTimeStaked <= block.timestamp) {
-            pending =
-                ((user.amount * pool.accUomiPerShare) /
-                    accUomiPerShareMultiple) -
-                user.rewardDebt;
-        } else {
-            pending = 0;
+        if (pool.mainnetReleased) {
             //if the user withdraws before 30 days have passed, the timer restarts
             user.lastDepositTime = block.timestamp;
-        }
-
-        if (pending > 0) {
-            safeUomiTransfer(msg.sender, pending);
-        }
+            user.pendingReward = 0;
+        } 
 
         if (_amount > 0) {
             user.amount = user.amount - _amount;
@@ -374,44 +346,6 @@ contract uomiFarm is Ownable {
             accUomiPerShareMultiple;
 
         emit Withdrawn(msg.sender, _pid, _amount);
-    }
-
-    /**
-     * @dev Allows a user to claim their pending rewards for a specific pool.
-     * @param _pid The pool ID.
-     */
-    function claimReward(uint256 _pid) public {
-        if (!marketOpen) revert marketNotOpen();
-        UserInfo storage user = userInfo[_pid][msg.sender];
-        PoolInfo storage pool = poolInfo[_pid];
-
-        uint256 poolRewardPerShare = getPoolRewardPerShare(_pid);
-
-        uint256 pending = user.lastDepositTime + pool.minTimeStaked <=
-            block.timestamp
-            ? ((user.amount * poolRewardPerShare) / accUomiPerShareMultiple) -
-                user.rewardDebt
-            : 0;
-
-        if (pending > 0) {
-            safeUomiTransfer(msg.sender, pending);
-
-            user.rewardDebt =
-                (user.amount * poolRewardPerShare) /
-                accUomiPerShareMultiple;
-        }
-
-        emit ClaimedReward(msg.sender, _pid);
-    }
-
-    function openMarket() public onlyOwner {
-        require(!marketOpen, "market already open");
-        marketOpen = true;
-    }
-
-    function closeMarket() public onlyOwner {
-        require(marketOpen, "market already closed");
-        marketOpen = false;
     }
 
     /**
@@ -446,9 +380,5 @@ contract uomiFarm is Ownable {
         return
             pool.accUomiPerShare +
             ((uomiReward * accUomiPerShareMultiple) / tokenSupply);
-    }
-
-    function removeRewards(uint256 _amount) public onlyOwner {
-        uomi.transfer(msg.sender, _amount);
     }
 }

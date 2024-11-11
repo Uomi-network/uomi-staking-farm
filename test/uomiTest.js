@@ -1,216 +1,197 @@
-/* eslint-disable no-undef */
+let expect;
+before(async () => {
+    ({ expect } = await import("chai"));
+});
 const { ethers } = require("hardhat");
-const { time } = require("@openzeppelin/test-helpers");
-const R = require("ramda");
 
-const cyan = "\x1b[36m%s\x1b[0m";
-const yellow = "\x1b[33m%s\x1b[0m";
 
-const fromWei = (stringValue) => ethers.utils.formatUnits(stringValue, 18);
-const toWei = (value) => ethers.utils.parseEther(value);
+describe("UomiFarm", function () {
+  let UomiFarm;
+  let uomiFarm;
+  let UomiToken;
+  let uomiToken;
+  let StakeToken;
+  let stakeToken;
+  let owner;
+  let addr1;
+  let addr2;
+  let addrs;
 
-describe("OVRLandContainer", async () => {
-  let RewardToken, rewardToken;
-  let StakingToken, stakingToken;
-  let UomiFarm, uomiFarm;
+  const REWARD_PER_BLOCK = ethers.utils.parseEther("100"); // 100 tokens per block
+  const INITIAL_MINT = ethers.utils.parseEther("1000000"); // 1M tokens
+  const ALLOCATION_POINT = 100;
 
-  beforeEach(async () => {
-    RewardToken = await ethers.getContractFactory("rewardToken");
-    StakingToken = await ethers.getContractFactory("stakingToken");
+  beforeEach(async function () {
+    // Get test accounts
+    [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
+
+    // Deploy mock ERC20 tokens
+    UomiToken = await ethers.getContractFactory("MockERC20");
+    uomiToken = await UomiToken.deploy("Uomi Token", "UOMI");
+    await uomiToken.mint(owner.address, INITIAL_MINT);
+
+    StakeToken = await ethers.getContractFactory("MockERC20");
+    stakeToken = await StakeToken.deploy("Stake Token", "STK");
+    await stakeToken.mint(addr1.address, INITIAL_MINT);
+    await stakeToken.mint(addr2.address, INITIAL_MINT);
+
+    // Deploy UomiFarm
+    const currentBlock = await ethers.provider.getBlockNumber();
+    const maxRewardBlock = currentBlock + 1000; // Set max reward block to current + 1000
+    
     UomiFarm = await ethers.getContractFactory("uomiFarm");
+    uomiFarm = await UomiFarm.deploy(
+      await uomiToken.getAddress(),
+      REWARD_PER_BLOCK,
+      maxRewardBlock
+    );
 
-    [
-      owner, // 50 ether
-      addr1, // 0
-      addr2, // 0
-      addr3, // 0
-      addr4, // 0
-      addr5, // 0
-      addr6, // 0
-      addr7, // 0
-      addr8, // 0
-      addr9, // 0
-      addr10, // 0
-      addr11, // 0
-      addr12, // 0
-      addr13, // 0
-      addr14, // 0
-      addr15, // 0
-      addr16, // 0
-      addr17, // 0
-      addr18, // 1000 ether
-    ] = await ethers.getSigners();
+    // Transfer reward tokens to the farm
+    await uomiToken.transfer(
+      await uomiFarm.getAddress(),
+      ethers.utils.parseEther("500000")
+    );
+
+    // Add staking pool
+    await uomiFarm.add(ALLOCATION_POINT, await stakeToken.getAddress(), false);
+
+    // Approve tokens for staking
+    await stakeToken.connect(addr1).approve(
+      await uomiFarm.getAddress(),
+      INITIAL_MINT
+    );
+    await stakeToken.connect(addr2).approve(
+      await uomiFarm.getAddress(),
+      INITIAL_MINT
+    );
   });
 
-  describe("Uomi farm tests", () => {
-    it("Should deploy contracts", async () => {
-      rewardToken = await RewardToken.deploy();
-      console.debug(cyan, `Reward token address: ${rewardToken.address}`);
-
-      stakingToken = await StakingToken.deploy();
-      console.debug(cyan, `Staking token address: ${stakingToken.address}`);
-
-      uomiFarm = await UomiFarm.deploy(
-        rewardToken.address,
-        toWei("1"),
-        999999999
-      );
-      console.debug(cyan, `Uomi farm address: ${uomiFarm.address}`);
-    });
-    it("send staking tokens to 10 addresses and all reward tokens to farm", async () => {
-      const addresses = [
-        addr1,
-        addr2,
-        addr3,
-        addr4,
-        addr5,
-        addr6,
-        addr7,
-        addr8,
-        addr9,
-        addr10,
-      ];
-      const amount = toWei("1000");
-
-      for (const address of addresses) {
-        await stakingToken.transfer(address.address, amount);
-        console.debug(
-          yellow,
-          `Staking token balance of ${address.address}: ${fromWei(
-            await stakingToken.balanceOf(address.address)
-          )}`
-        );
-      }
-
-      await rewardToken.transfer(
-        uomiFarm.address,
-        await rewardToken.totalSupply()
-      );
-    });
-    it("Add a new pool into the farm with 30 days", async () => {
-      await uomiFarm.add(100, stakingToken.address, true, 2628000, 999999999);
-      await uomiFarm.openMarket();
-      console.debug(cyan, `Pool 0 info: ${await uomiFarm.poolInfo(0)}`);
+  describe("Deployment", function () {
+    it("Should set the right owner", async function () {
+      expect(await uomiFarm.owner()).to.equal(owner.address);
     });
 
-    it("Owner deposits 10 tokens into pool 0", async () => {
-      await stakingToken.approve(uomiFarm.address, toWei("10"));
-      await uomiFarm.deposit(0, toWei("10"));
-      const userInfo = await uomiFarm.userInfo(0, owner.address);
-
-      console.debug(
-        "correct deposited",
-        userInfo.amount.toString() == toWei("10")
-      );
-    });
-    it("owner claims rewards", async () => {
-      //console current block
-      await uomiFarm.claimReward(0);
-      const rewardTokenBalance = await rewardToken.balanceOf(owner.address);
-
-      console.debug(
-        "correct reward token balance",
-        parseFloat(fromWei(rewardTokenBalance)).toFixed(2) == 0
-      );
-    });
-    it("1 block passed, should have earned 1 tokens", async () => {
-      const rewardByPoolId = await uomiFarm.getTotalRewardByPoolId(
-        0,
-        owner.address
-      );
-      console.debug("current block", await ethers.provider.getBlockNumber());
-      console.debug(
-        "correct earned",
-        parseFloat(fromWei(rewardByPoolId)).toFixed(2) == 1
-      );
+    it("Should set the correct reward per block", async function () {
+      expect(await uomiFarm.rewardPerBlock()).to.equal(REWARD_PER_BLOCK);
     });
 
-    it("addr1 should deposit 10 token into pool 0", async () => {
-      await stakingToken.connect(addr1).approve(uomiFarm.address, toWei("10"));
-      await uomiFarm.connect(addr1).deposit(0, toWei("10"));
+    it("Should initialize pool correctly", async function () {
+      const pool = await uomiFarm.poolInfo(0);
+      expect(pool.token).to.equal(await stakeToken.getAddress());
+      expect(pool.allocPoint).to.equal(ALLOCATION_POINT);
+      expect(pool.totalStaked).to.equal(0);
+    });
+  });
+
+  describe("Pool Management", function () {
+    it("Should allow owner to add new pools", async function () {
+      const newStakeToken = await StakeToken.deploy("New Stake", "NSTK");
+      await uomiFarm.add(50, await newStakeToken.getAddress(), false);
+      
+      expect(await uomiFarm.poolLength()).to.equal(2);
+      const pool = await uomiFarm.poolInfo(1);
+      expect(pool.token).to.equal(await newStakeToken.getAddress());
+      expect(pool.allocPoint).to.equal(50);
+    });
+
+    it("Should revert when adding pool with zero allocation points", async function () {
+      const newStakeToken = await StakeToken.deploy("New Stake", "NSTK");
+      await expect(
+        uomiFarm.add(0, await newStakeToken.getAddress(), false)
+      ).to.be.revertedWithCustomError(uomiFarm, "AllocPointZero");
+    });
+  });
+
+  describe("Staking", function () {
+    it("Should allow users to stake tokens", async function () {
+      const stakeAmount = ethers.utils.parseEther("100");
+      await uomiFarm.connect(addr1).deposit(0, stakeAmount);
+
       const userInfo = await uomiFarm.userInfo(0, addr1.address);
-
-      console.debug(
-        "correct deposited",
-        userInfo.amount.toString() == toWei("10")
-      );
+      expect(userInfo.amount).to.equal(stakeAmount);
     });
-    it("1 block passed, addr1 should have earned 1 / 2", async () => {
-      await time.advanceBlock();
 
-      const addr1RewardByPoolId = await uomiFarm.getTotalRewardByPoolId(
-        0,
-        addr1.address
-      );
-
-      console.debug(
-        "correct earned",
-        parseFloat(fromWei(addr1RewardByPoolId)).toFixed(2) ==
-          (1 / 2).toFixed(2)
-      );
+    it("Should revert when staking zero amount", async function () {
+      await expect(
+        uomiFarm.connect(addr1).deposit(0, 0)
+      ).to.be.revertedWithCustomError(uomiFarm, "DepositZero");
     });
-    it("owner and addr1 should withdrawAll", async () => {
-      await uomiFarm.withdrawAll(0);
+
+    it("Should update pool total staked amount", async function () {
+      const stakeAmount = ethers.utils.parseEther("100");
+      await uomiFarm.connect(addr1).deposit(0, stakeAmount);
+
+      const pool = await uomiFarm.poolInfo(0);
+      expect(pool.totalStaked).to.equal(stakeAmount);
+    });
+  });
+
+  describe("Rewards and Withdrawals", function () {
+    it("Should not distribute rewards before mainnet release", async function () {
+      const stakeAmount = ethers.utils.parseEther("100");
+      await uomiFarm.connect(addr1).deposit(0, stakeAmount);
+
+      // Mine a few blocks
+      await mine(5);
+
+      const totalReward = await uomiFarm.getTotalRewardByPoolId(0, addr1.address);
+      expect(totalReward).to.equal(0);
+    });
+
+    it("Should forfeit rewards when withdrawing before mainnet release", async function () {
+      const stakeAmount = ethers.utils.parseEther("100");
+      await uomiFarm.connect(addr1).deposit(0, stakeAmount);
+
+      // Mine a few blocks
+      await mine(5);
+
+      // Withdraw all tokens
       await uomiFarm.connect(addr1).withdrawAll(0);
 
-      const userInfoOwner = await uomiFarm.userInfo(0, owner.address);
-      const userInfoAddr1 = await uomiFarm.userInfo(0, addr1.address);
-
-      console.debug(
-        "correct withdrawn",
-        userInfoOwner.amount.toString() == 0 &&
-          userInfoAddr1.amount.toString() == 0
-      );
-
-      // addr1 and owner balance of rewardToken should be == 0 (30 days not passed)
-      console.debug(
-        "correct reward token balance",
-        parseFloat(fromWei(await rewardToken.balanceOf(owner.address))) == 0 &&
-          parseFloat(fromWei(await rewardToken.balanceOf(addr1.address))) == 0
-      );
-    });
-    it("Owner deposits 10 tokens into pool 0", async () => {
-      await stakingToken.approve(uomiFarm.address, toWei("10"));
-      await uomiFarm.deposit(0, toWei("10"));
-
-      const userInfo = await uomiFarm.userInfo(0, owner.address);
-
-      console.debug(
-        "correct deposited",
-        userInfo.amount.toString() == toWei("10")
-      );
+      const userInfo = await uomiFarm.userInfo(0, addr1.address);
+      expect(userInfo.amount).to.equal(0);
+      expect(userInfo.pendingReward).to.equal(0);
     });
 
-    it("31 days passed, should have earned multiple of 1 tokens", async () => {
-      //1 block every 12 seconds
-      for (let i = 0; i < 2628000 / 12; i++) {
-        await time.advanceBlock();
-      }
+    it("Should stop generating rewards after maxRewardBlockNumber", async function () {
+      const stakeAmount = ethers.utils.parseEther("100");
+      await uomiFarm.connect(addr1).deposit(0, stakeAmount);
 
-      const rewardByPoolId0 = await uomiFarm.getTotalRewardByPoolId(
-        0,
-        owner.address
-      );
+      const currentBlock = await ethers.provider.getBlockNumber();
+      await uomiFarm.updateMaxRewardBlockNumber(currentBlock + 5);
 
-      console.debug(
-        "correct earned",
-        parseFloat(fromWei(rewardByPoolId0)).toFixed(2) == 2628000 / 12 //1 token per block
-      );
+      // Mine more blocks than maxRewardBlockNumber
+      await mine(10);
+
+      const pool = await uomiFarm.poolInfo(0);
+      expect(pool.lastRewardBlock).to.be.lte(await uomiFarm.maxRewardBlockNumber());
     });
-    it("time forward 1 month, owner should withdrawAll from pool 0", async () => {
-      await time.increase(2628000); //1 month
+  });
 
-      await uomiFarm.withdrawAll(0);
+  describe("Owner Functions", function () {
+    it("Should allow owner to update maxRewardBlockNumber", async function () {
+      const newMaxBlock = 1000000;
+      await uomiFarm.updateMaxRewardBlockNumber(newMaxBlock);
+      expect(await uomiFarm.maxRewardBlockNumber()).to.equal(newMaxBlock);
+    });
 
-      const userInfo = await uomiFarm.userInfo(0, owner.address);
+    it("Should allow owner to update rewardPerBlock", async function () {
+      const newRewardPerBlock = ethers.utils.parseEther("200");
+      await uomiFarm.updateRewardPerBlock(newRewardPerBlock);
+      expect(await uomiFarm.rewardPerBlock()).to.equal(newRewardPerBlock);
+    });
 
-      console.debug("correct withdrawn", userInfo.amount.toString() == 0);
-
-      // owner balance of rewardToken should be != 0
-      console.debug(
-        "correct reward token balance",
-        parseFloat(fromWei(await rewardToken.balanceOf(owner.address))) != 0
-      );
+    it("Should allow owner to redeem all rewards", async function () {
+      const initialBalance = await uomiToken.balanceOf(owner.address);
+      await uomiFarm.redeemAllRewards(owner.address);
+      const finalBalance = await uomiToken.balanceOf(owner.address);
+      expect(finalBalance).to.be.gt(initialBalance);
     });
   });
 });
+
+async function mine(blocks) {
+  for (let i = 0; i < blocks; i++) {
+    await ethers.provider.send("evm_mine");
+  }
+}
