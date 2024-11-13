@@ -1,8 +1,8 @@
 const hre = require("hardhat");
 
 async function main() {
-  rewardsPerBlock = "1";
-  endFarmBlock = "9999999";
+  rewardsPerBlock = "1000000000000000000";
+  endFarmBlock = "7067453";
 
   const uomi = await hre.ethers.deployContract("uomiFarm", [
     rewardsPerBlock,

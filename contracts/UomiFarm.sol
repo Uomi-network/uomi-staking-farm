@@ -71,8 +71,8 @@ contract uomiFarm is Ownable {
     error AllocPointZero();
     error MaxPoolCapReached();
     error DepositZero();
-    error poolNotExist();
-    error stakingPeriodEnded();
+    error PoolNotExist();
+    error StakingPeriodEnded();
 
     constructor(
         uint256 _rewardPerBlock,
@@ -239,7 +239,7 @@ contract uomiFarm is Ownable {
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
 
-        if (pool.lastRewardBlock > maxRewardBlockNumber) {
+        if (pool.lastRewardBlock >= maxRewardBlockNumber) {
             revert MaxPoolCapReached();
         }
 
@@ -248,27 +248,29 @@ contract uomiFarm is Ownable {
     }
 
 
-
     /**
-     * @notice Deposits a specified amount of tokens for a user into a staking pool.
-     * @dev This function allows a user to deposit tokens into a specific pool identified by `_pid`.
-     *      It updates the pool's and user's information accordingly.
-     * @param _pid The ID of the pool into which the tokens will be deposited.
-     * @param _amount The amount of tokens to be deposited.
-     * @param _user The address of the user for whom the deposit is being made.
-     * @notice Reverts if the deposit amount is zero.
-     * @notice Reverts if the pool does not exist.
-     * @notice Reverts if the staking period has ended.
-     * @notice Transfers the specified amount of tokens from the user to the contract.
-     * @notice Updates the user's staked amount, total staked amount in the pool, and the user's reward debt.
-     * @notice Emits a `Deposited` event upon successful deposit.
+     * @dev Allows a user to deposit tokens into a specific pool.
+     * @param _pid The pool ID.
+     * @param _amount The amount of tokens to deposit.
+     * Requirements:
+     * - The amount must be greater than zero.
+     * - The pool must exist.
+     * Effects:
+     * - Updates the pool information.
+     * - Transfers the deposited tokens from the user to the contract.
+     * - Updates the user's staked amount and the pool's total staked amount.
+     * - Calculates and transfers any pending rewards to the user.
+     * - Updates the user's reward debt.
+     * - Updates the user's last deposit time.
+     * Emits a `Deposited` event.
      */
     function depositForUser(uint256 _pid, uint256 _amount, address _user) public {
         if (_amount == 0) revert DepositZero();
+        if (block.number >= maxRewardBlockNumber) revert StakingPeriodEnded();
 
         PoolInfo storage pool = poolInfo[_pid];
-        if (pool.token == IERC20(address(0))) revert poolNotExist();
-        if (pool.mainnetReleased) revert stakingPeriodEnded();
+        if (pool.token == IERC20(address(0))) revert PoolNotExist();
+        if (pool.mainnetReleased) revert StakingPeriodEnded();
 
         UserInfo storage user = userInfo[_pid][_user];
         updatePool(_pid);
@@ -293,12 +295,6 @@ contract uomiFarm is Ownable {
         emit Deposited(_user, _pid, _amount);
     }
 
-    /**
-     * @notice Allows a user to deposit a specified amount of tokens into a specific pool.
-     * @dev This function calls the `depositForUser` function with the sender's address.
-     * @param _pid The ID of the pool where the tokens will be deposited.
-     * @param _amount The amount of tokens to deposit.
-     */
     function deposit(uint256 _pid, uint256 _amount) public {
         depositForUser(_pid, _amount, msg.sender);
     }
@@ -318,7 +314,8 @@ contract uomiFarm is Ownable {
      * @param _pid The pool ID.
      * @param _amount The amount of tokens to withdraw.
      * @notice The user must have enough tokens staked to withdraw the specified amount.
-     * @notice If mainnet is not released, user will lose all his/her earned rewards.
+     * @notice If the user has not reached the minimum staking time for the pool, the withdrawal will be rejected.
+     * @notice The user will receive any pending rewards before withdrawing their tokens.
      * @notice The user's staked token balance and the pool's total staked tokens will be updated accordingly.
      * @notice Emits a `Withdrawn` event with the user's address, pool ID, and amount of tokens withdrawn.
      */
