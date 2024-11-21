@@ -121,7 +121,7 @@ The smart contract `uomiFarm` manages the staking and reward distribution logic.
 
 ## Rewards 
 
-Rewards will stop after reaching maxRewardsBlock, after that a snapshot will be done to airdrop tokens on the mainnet, after the snapshot admin will set 'mainnet released' and after that users can withdraw their tokens without losing the earned rewards
+Rewards will stop after reaching maxRewardsBlock, after that a snapshot will be done to airdrop tokens on the mainnet, after the snapshot an admin will set 'mainnet released' and only after that users can withdraw their tokens without losing the earned rewards
 
 ### Running Tests
 
