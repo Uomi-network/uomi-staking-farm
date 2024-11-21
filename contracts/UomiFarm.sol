@@ -362,7 +362,7 @@ contract uomiFarm is Ownable {
             return 0;
         }
         if (pool.lastRewardBlock > maxRewardBlockNumber) {
-            return 0;
+            return pool.accUomiPerShare;
         }
 
         uint256 currentRewardBlock = block.number >= maxRewardBlockNumber
