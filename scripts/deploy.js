@@ -1,16 +1,18 @@
-const hre = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 
 async function main() {
-  rewardsPerBlock = "1000000000000000000";
-  endFarmBlock = "7067453";
+  rewardsPerBlock = "63400000000000000000";
+  endFarmBlock = "33374297";
 
-  const uomi = await hre.ethers.deployContract("uomiFarm", [
-    rewardsPerBlock,
-    endFarmBlock,
-  ]);
+  const uomi = await ethers.getContractFactory("uomiFarm");
+
+  const uomideployed = await upgrades.deployProxy(uomi, [rewardsPerBlock, endFarmBlock], {
+    initializer: "initialize",
+    kind: "uups",
+  });
 
 
-  console.log("UOMI deployed to:", uomi.target);
+  console.log("UOMI deployed to:", uomideployed.target);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -3,6 +3,7 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-web3");
 require("@nomicfoundation/hardhat-verify");
 require("hardhat-gas-reporter");
+require("@openzeppelin/hardhat-upgrades");
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -19,7 +20,7 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.20",
+        version: "0.8.23",
         settings: {
           optimizer: {
             enabled: true,
@@ -56,8 +57,8 @@ module.exports = {
       url: `https://1rpc.io/sepolia`,
       accounts: [process.env.PRIVATE_KEY],
     },
-    "matic-mainnet": {
-      url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+    "base": {
+      url: `https://base.llamarpc.com`,
       accounts: [process.env.PRIVATE_KEY],
     },
   },

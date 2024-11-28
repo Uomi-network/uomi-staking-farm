@@ -14,9 +14,10 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract uomiFarm is Ownable {
+contract uomiFarm is UUPSUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
     struct UserInfo {
@@ -47,7 +48,7 @@ contract uomiFarm is Ownable {
     }
 
     // Total allocation points. Must be the sum of all allocation points in all pools.
-    uint256 public totalAllocPoint = 0;
+    uint256 public totalAllocPoint;
     // The block number when uomi mining starts ->
 
     // max reward block
@@ -71,15 +72,17 @@ contract uomiFarm is Ownable {
     error AllocPointZero();
     error MaxPoolCapReached();
     error DepositZero();
+    error WithdrawZero();
     error PoolNotExist();
     error StakingPeriodEnded();
 
-    constructor(
+    function initialize(
         uint256 _rewardPerBlock,
         uint256 _maxRewardBlockNumber
-    ) Ownable(msg.sender) {
+    ) external initializer {
         rewardPerBlock = _rewardPerBlock;
         maxRewardBlockNumber = _maxRewardBlockNumber;
+        __Ownable_init(msg.sender);
     }
 
     /**
@@ -239,10 +242,6 @@ contract uomiFarm is Ownable {
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
 
-        if (pool.lastRewardBlock >= maxRewardBlockNumber) {
-            revert MaxPoolCapReached();
-        }
-
         pool.accUomiPerShare = getPoolRewardPerShare(_pid);
         pool.lastRewardBlock = block.number;
     }
@@ -323,20 +322,24 @@ contract uomiFarm is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         if (user.amount < _amount) revert NotEnoughToWithdraw();
+        if (_amount == 0) revert WithdrawZero();
+        
 
         updatePool(_pid);
 
-        if (pool.mainnetReleased) {
-            //if the user withdraws before 30 days have passed, the timer restarts
+        if (!pool.mainnetReleased) {
             user.lastDepositTime = block.timestamp;
             user.pendingReward = 0;
         } 
 
-        if (_amount > 0) {
-            user.amount = user.amount - _amount;
-            pool.token.safeTransfer(msg.sender, _amount);
-            pool.totalStaked = pool.totalStaked - _amount;
+      
+        user.amount = user.amount - _amount;
+        if(user.amount == 0){
+            user.lastDepositTime = 0;
         }
+        pool.token.safeTransfer(msg.sender, _amount);
+        pool.totalStaked = pool.totalStaked - _amount;
+    
 
         user.rewardDebt =
             (user.amount * pool.accUomiPerShare) /
@@ -378,4 +381,11 @@ contract uomiFarm is Ownable {
             pool.accUomiPerShare +
             ((uomiReward * accUomiPerShareMultiple) / tokenSupply);
     }
+
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyOwner
+    {}
+
 }

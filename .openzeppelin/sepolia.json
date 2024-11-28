@@ -1,0 +1,447 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xBA94D62e4391aa2afE77672B3d2Fd5D180c254d4",
+      "txHash": "0x92a775e49bc174e23f60bafaebad3b7c7edc5a2684fc1d2be6463e9a9b96c892",
+      "kind": "uups"
+    },
+    {
+      "address": "0x0B5C50F80195B0c362f1C38Bf6f3dC78b5B23E7E",
+      "txHash": "0x86500cec7cf8353326c34611771103797ae63d0cfa992000eb2f3225ad860185",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "0f626aa36650ed3078732aa705579e9e6da4b8fa7b3403c809cd5050b02a5a1f": {
+      "address": "0x2D56972CAcD9EBfBe6200e8C2Ad108851a99Cd54",
+      "txHash": "0x5d4d8a0ddae00a9031a0d37dbdfc2b977a2e96e9539ba5fe97e969611e117a14",
+      "layout": {
+        "solcVersion": "0.8.23",
+        "storage": [
+          {
+            "label": "totalAllocPoint",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:64"
+          },
+          {
+            "label": "maxRewardBlockNumber",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:66"
+          },
+          {
+            "label": "rewardPerBlock",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:68"
+          },
+          {
+            "label": "poolInfo",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_array(t_struct(PoolInfo)2043_storage)dyn_storage",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:72"
+          },
+          {
+            "label": "userInfo",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserInfo)2029_storage))",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:74"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_struct(PoolInfo)2043_storage)dyn_storage": {
+            "label": "struct uomiFarm.PoolInfo[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC20)1179": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_struct(UserInfo)2029_storage)": {
+            "label": "mapping(address => struct uomiFarm.UserInfo)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserInfo)2029_storage))": {
+            "label": "mapping(uint256 => mapping(address => struct uomiFarm.UserInfo))",
+            "numberOfBytes": "32"
+          },
+          "t_struct(PoolInfo)2043_storage": {
+            "label": "struct uomiFarm.PoolInfo",
+            "members": [
+              {
+                "label": "token",
+                "type": "t_contract(IERC20)1179",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "allocPoint",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lastRewardBlock",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "accUomiPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalStaked",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "mainnetReleased",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(UserInfo)2029_storage": {
+            "label": "struct uomiFarm.UserInfo",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "rewardDebt",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lastDepositTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "pendingReward",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "0753c1a31135c892bf1f73dc89d25a95d030df318c811dfd5e1d01ac8bd68b14": {
+      "address": "0x635D59480a0Ab1aA167583D8658aB56d5BdB3fEC",
+      "txHash": "0x9dfbdb2cea5eb570cc714f342f05a947f8105abbb19f459d220a9b8dbdd8a7f6",
+      "layout": {
+        "solcVersion": "0.8.23",
+        "storage": [
+          {
+            "label": "totalAllocPoint",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:64"
+          },
+          {
+            "label": "maxRewardBlockNumber",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:66"
+          },
+          {
+            "label": "rewardPerBlock",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:68"
+          },
+          {
+            "label": "poolInfo",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_array(t_struct(PoolInfo)2043_storage)dyn_storage",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:72"
+          },
+          {
+            "label": "userInfo",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserInfo)2029_storage))",
+            "contract": "uomiFarm",
+            "src": "contracts/UomiFarm.sol:74"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_struct(PoolInfo)2043_storage)dyn_storage": {
+            "label": "struct uomiFarm.PoolInfo[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC20)1179": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_struct(UserInfo)2029_storage)": {
+            "label": "mapping(address => struct uomiFarm.UserInfo)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_struct(UserInfo)2029_storage))": {
+            "label": "mapping(uint256 => mapping(address => struct uomiFarm.UserInfo))",
+            "numberOfBytes": "32"
+          },
+          "t_struct(PoolInfo)2043_storage": {
+            "label": "struct uomiFarm.PoolInfo",
+            "members": [
+              {
+                "label": "token",
+                "type": "t_contract(IERC20)1179",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "allocPoint",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lastRewardBlock",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "accUomiPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalStaked",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "mainnetReleased",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(UserInfo)2029_storage": {
+            "label": "struct uomiFarm.UserInfo",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "rewardDebt",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lastDepositTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "pendingReward",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
